@@ -4,14 +4,22 @@ import random
 import json
 import threading
 import string
+import time
 proxies = []
 usernames = []
 domains = ["@gmail.com", "@yahoo.com", "@outlook.com"]
 randomly_gen_usernames = False
+display_errors = False
 print("Generator Made by: Pr0t0n X ADylan")
 threads = input("Enter amount of threads you would like: ")
 invite_link = input("Enter the invite code: ")
 water_mark = input("Enter a watermark: ")
+display_errrors = input("Do you want to display errors (y/n): ")
+if display_errrors.lower() == "y" or display_errrors.lower() == "yes":
+    display_errors = True
+else:
+    pass
+
 char_symbols = ["!", "@", "#"]
 with open('proxies.txt', 'r+') as f:
     proxiess = f.readlines()
@@ -50,17 +58,26 @@ def fetch_cookies(proxy):
         'http': f'http://{proxy}',
         'https': f'http://{proxy}'
     }
-    data = session.post(url)
+    try:
+        data = session.get(url)
+    except requests.exceptions.ProxyError:
+        if display_errors:
+            print("[+]: Something Went wrong while trying to get cookies with proxy! (you can ingnore this aslong as you don't keep getting this msg)")
+        return join_server()
+    except Exception as error:
+        if display_errors:
+            print("[+]: A Unknown Error Occured")
+        return join_server
     cookies = data.cookies.get_dict()
     dcfduid = cookies.get('__dcfduid')
     sdcfduid = cookies.get('__sdcfduid')
     session.close()
-    print(f"[+]: Fetched dcfduid {dcfduid[:10]}... and sdcfduid {sdcfduid[:10]}... Cookies")
+    print(f"[+]: Fetched dcfduid {dcfduid[:15]}... and sdcfduid {sdcfduid[:15]}... Cookies")
     return dcfduid, sdcfduid
 
 def solve_captcha(proxy):
     print("[+]: Solving Captcha")
-    captchakey = httpx.post("http://ezcaptcha.us:8080/solvecaptcha", json={
+    captchakey = httpx.post("http://127.0.0.1:8080/solvecaptcha", json={
         "site_key": "4c672d35-0701-42b2-88c3-78380b0db560",
         "site_url": "https://discord.com/",
         "proxy_url": proxy
@@ -68,9 +85,10 @@ def solve_captcha(proxy):
     captchakey = captchakey.text
     captchakey = str(captchakey)
     if "unable" in captchakey.lower():
-        print("[+]: Error Solving Captcha")
+        if display_errors:
+            print("[+]: Error Solving Captcha")
         return join_server()
-    print(f"[+]: Solved Captcha {captchakey[:10]}")
+    print(f"[+]: Solved Captcha {captchakey[:15]}")
     return captchakey
 
 def get_fingerprint(proxy):
@@ -81,9 +99,19 @@ def get_fingerprint(proxy):
         'http': f'http://{proxy}',
         'https': f'http://{proxy}'
     }
-    data = session.get(url)
+    try:
+        data = session.get(url)
+    except requests.exceptions.ProxyError:
+        if display_errors:
+            print("[+]: Something Went wrong while trying to get fingerprint with proxy! (you can ingnore this aslong as you don't keep getting this msg)")
+        return join_server()
+    except Exception as error:
+        if display_errors:
+            print("[+]: A Unknown Error Occured")
+        return join_server
+    session.close()
     fingerprint = data.json()['fingerprint']
-    print(f"[+]: Fetched Fingerprint {fingerprint[:10]}...")
+    print(f"[+]: Fetched Fingerprint {fingerprint[:15]}...")
     return fingerprint
 
 
@@ -99,7 +127,12 @@ def join_server():
     username = username.replace("\n", "")
     password = generate_passwords(random.randint(10, 16))
     email = generate_email(random.randint(8, 12))
-    dcfduid, sdcfduid = fetch_cookies(proxy)
+    try:
+        dcfduid, sdcfduid = fetch_cookies(proxy)
+    except TypeError:
+        if display_errors:
+            print("[+]: A TypeError Occured (this is normal when running on high threads)")
+        return join_server()
     fingerprint = get_fingerprint(proxy)
     captcha = solve_captcha(proxy)
     url = 'https://discord.com/api/v10/auth/register'
@@ -139,16 +172,31 @@ def join_server():
         "gift_code_sku_id": None,
         "captcha_key": captcha
     }
-
-    data = session.post(url, headers=headers, json=payload)
+    try:
+        data = session.post(url, headers=headers, json=payload)
+        session.close()
+    except requests.exceptions.ProxyError:
+        if display_errors:
+            print("[+]: Something Went wrong while trying to send POST req with proxy! (you can ingnore this aslong as you don't keep getting this msg)")
+        return join_server()
+    except Exception as error:
+        if display_errors:
+            print("[+]: A Unknown Error Occured")
+        return join_server()
     if int(data.status_code) == 201 or int(data.status_code) == 200:
         token = data.json()['token']
-        print(f"Created Account and Joined Server with token {token[:10]}...")
-        return join_server
+        file = open("tokens.txt", "a+")
+        file.write(f"{email}:Pr0XDy{password}?:{token}\n")
+        file.close()
+        print(f"[+]: Created Account and Joined Server with token {token[:15]}...")
+        return join_server()
     else:
-        print(f"An Error Occured While Creating account or joining Server\nPossible Invalid Captcha Response!\nResponse: {data.text}")
-        return join_server
+        if True:
+            print(f"[+]: Possible Invalid Captcha Response (possibly because proxies) or Ratelimit!")
+        return join_server()
         
 if __name__ == "__main__": 
     for i in range(int(threads)):
         threading.Thread(target=join_server).start()
+        time.sleep(0.3)
+    
