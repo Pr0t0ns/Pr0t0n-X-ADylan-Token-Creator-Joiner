@@ -77,7 +77,7 @@ def fetch_cookies(proxy):
 
 def solve_captcha(proxy):
     print("[+]: Solving Captcha")
-    captchakey = httpx.post("http://127.0.0.1:8080/solvecaptcha", json={
+    captchakey = httpx.post("http://ezcaptcha.us:8080/solvecaptcha", json={
         "site_key": "4c672d35-0701-42b2-88c3-78380b0db560",
         "site_url": "https://discord.com/",
         "proxy_url": proxy
