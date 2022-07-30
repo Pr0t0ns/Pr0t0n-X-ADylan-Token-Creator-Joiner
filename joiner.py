@@ -94,7 +94,7 @@ def join_server():
         username = generate_username(random.randint(8, 12))
     else:
         username = random.choice(usernames)
-    username += "| "
+    username += " | "
     username += water_mark
     username = username.replace("\n", "")
     password = generate_passwords(random.randint(10, 16))
